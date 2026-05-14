@@ -7,7 +7,16 @@
   "authors": ["Developer"],
   "license": "MIT",
   "environment": "client",
-  "entrypoints": { "main": [ "com.example.optimization.OptimizationMod" ] },
-  "mixins": [ "maxoptimize.mixins.json" ],
-  "depends": { "fabricloader": ">=0.16.0", "minecraft": "1.21.4" }
+  "entrypoints": {
+    "client": [
+      "com.example.optimization.OptimizationMod"
+    ]
+  },
+  "mixins": [
+    "maxoptimize.mixins.json"
+  ],
+  "depends": {
+    "fabricloader": ">=0.16.0",
+    "minecraft": "1.21.4"
+  }
 }
