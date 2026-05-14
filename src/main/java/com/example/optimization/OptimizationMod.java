@@ -79,7 +79,7 @@ public class OptimizationMod implements ModInitializer {
         }
     }
 
-    // 4. ТЕКСТУРЫ 2x2 (4 ПИКСЕЛЯ): СЖАТИЕ С ИСПОЛЬЗОВАНИЕМ ПОДКЛЮЧЕННОГО INVOKER ACCESSOR
+    // 4. ТЕКСТУРЫ 2x2 (4 ПИКСЕЛЯ): ИСПРАВЛЕНО ПРИВЕДЕНИЕ ТИПОВ ЧЕРЕЗ (OBJECT)
     @Mixin(NativeImage.class)
     public static class MixinNativeImage {
         @Inject(method = "upload", at = @At("HEAD"))
@@ -95,7 +95,7 @@ public class OptimizationMod implements ModInitializer {
             int bottomLeftColor = getAverageColorOfSector(image, 0, midX, midY, height);
             int bottomRightColor = getAverageColorOfSector(image, midX, width, midY, height);
 
-            NativeImageAccessor accessor = (NativeImageAccessor) image;
+            NativeImageAccessor accessor = (NativeImageAccessor) (Object) image;
             for (int x = 0; x < width; x++) {
                 for (int y = 0; y < height; y++) {
                     if (x < midX && y < midY) {
@@ -116,7 +116,7 @@ public class OptimizationMod implements ModInitializer {
             int count = (endX - startX) * (endY - startY);
             if (count <= 0) return 0;
 
-            NativeImageAccessor accessor = (NativeImageAccessor) img;
+            NativeImageAccessor accessor = (NativeImageAccessor) (Object) img;
             for (int x = startX; x < endX; x++) {
                 for (int y = startY; y < endY; y++) {
                     int color = accessor.invokeGetColor(x, y);
@@ -188,6 +188,7 @@ public class OptimizationMod implements ModInitializer {
         }
     }
 
+    // ПОЛУЧЕНИЕ ДОСТУПА К СКРЫТОМУ ПОЛЮ ПРОЗРАЧНОСТИ ЧАСТИЦЫ
     @Mixin(Particle.class)
     public interface ParticleAlphaAccessor {
         @Accessor("alpha")
@@ -203,12 +204,13 @@ public class OptimizationMod implements ModInitializer {
         }
     }
 
-    // 9. ПОЛНАЯ ЗАМОРОЗКА АНИМАЦИЙ СТРУКТУРЫ АНИМАЦИИ СПРАЙТОВ
-    @Mixin(targets = "net.minecraft.client.texture.SpriteContents$Animation")
-    public static class MixinSpriteAnimation {
-        @Inject(method = "tick", at = @At("HEAD"), cancellable = true)
-        private void onTickAnimation(CallbackInfo ci) {
-            ci.cancel();
+    // 9. БЕЗОПАСНАЯ ОТМЕНА АНИМАЦИИ НА СТАДИИ ЗАГРУЗКИ СПРАЙТОВ (МИНУЯ КОНФЛИКТНЫЙ МЕТОД TICK)
+    @Mixin(SpriteContents.class)
+    public static class MixinSpriteContents {
+        @Inject(method = "getAnimation", at = @At("HEAD"), cancellable = true)
+        private void onGetAnimation(CallbackInfoReturnable<Object> cir) {
+            // Возвращаем пустую анимацию, полностью замораживая текстуры воды/лавы без ошибок выполнения
+            cir.setReturnValue(null);
         }
     }
 
