@@ -20,8 +20,8 @@ jobs:
           gradle-version: '8.11.1'
 
       - name: Build with Loom
-        run: gradle build
-
+        run: gradle build --refresh-dependencies # Этот флаг принудительно стирает старые битые пути из памяти сервера
+        
       - name: Upload Jar
         uses: actions/upload-artifact@v4
         with:
