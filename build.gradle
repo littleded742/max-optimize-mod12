@@ -2,7 +2,7 @@ buildscript {
     repositories {
         maven {
             name = 'Fabric'
-            url = 'https://maven.fabricmc.net/'
+            url = 'fabricmc.net'
         }
         mavenCentral()
     }
@@ -16,14 +16,14 @@ plugins {
     id 'maven-publish'
 }
 
-// Принудительно применяем плагин к проекту
-apply plugin: 'net.fabricmc.fabric-loom'
+// Принудительно применяем плагин через прямой Java-класс, чтобы обойти ошибку ID
+apply plugin: net.fabricmc.loom.LoomGradlePlugin
 
 version = '1.0.0'
 group = 'com.example'
 
 repositories {
-    maven { url = "https://maven.fabricmc.net/" }
+    maven { url = "fabricmc.net" }
     mavenCentral()
 }
 
