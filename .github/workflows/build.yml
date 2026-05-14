@@ -19,11 +19,12 @@ jobs:
         with:
           gradle-version: '8.11.1'
 
+      # Компилируем проект стандартным методом сборки Fabric Loom
       - name: Build with Loom
-        run: gradle build # Этот флаг принудительно стирает старые битые пути из памяти сервера
-        
+        run: gradle remapJar
+
       - name: Upload Jar
         uses: actions/upload-artifact@v4
         with:
           name: MaxOptimize-1.21.4
-          path: build/libs/*.jar
+          path: build/libs/*-1.0.0.jar # Робот заберет строго готовый remapped файл мода
