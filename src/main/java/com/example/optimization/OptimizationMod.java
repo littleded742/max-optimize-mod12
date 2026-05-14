@@ -20,6 +20,7 @@ import net.minecraft.particle.ParticleEffect;
 import net.minecraft.particle.EntityEffectParticleEffect;
 import net.minecraft.util.Hand;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.gen.Accessor;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
@@ -68,7 +69,7 @@ public class OptimizationMod implements ModInitializer {
         }
     }
 
-    // 4. ТЕКСТУРЫ 2x2 (4 ПИКСЕЛЯ): СЖАТИЕ БЕЗ КИСЛОТНОСТИ И СЛИВАНИЯ РУД (ИСПРАВЛЕНО НА setPixelArgb)
+    // 4. ТЕКСТУРЫ 2x2 (4 ПИКСЕЛЯ): СЖАТИЕ С ПРАВИЛЬНЫМИ ТИПАМИ ИНТЕРФЕЙСА NATIVEIMAGE
     @Mixin(NativeImage.class)
     public static class MixinNativeImage {
         @Inject(method = "upload", at = @At("HEAD"))
@@ -87,13 +88,13 @@ public class OptimizationMod implements ModInitializer {
             for (int x = 0; x < width; x++) {
                 for (int y = 0; y < height; y++) {
                     if (x < midX && y < midY) {
-                        image.setPixelArgb(x, y, topLeftColor);
+                        image.setColor(x, y, topLeftColor);
                     } else if (x >= midX && y < midY) {
-                        image.setPixelArgb(x, y, topRightColor);
+                        image.setColor(x, y, topRightColor);
                     } else if (x < midX && y >= midY) {
-                        image.setPixelArgb(x, y, bottomLeftColor);
+                        image.setColor(x, y, bottomLeftColor);
                     } else {
-                        image.setPixelArgb(x, y, bottomRightColor);
+                        image.setColor(x, y, bottomRightColor);
                     }
                 }
             }
@@ -106,7 +107,7 @@ public class OptimizationMod implements ModInitializer {
 
             for (int x = startX; x < endX; x++) {
                 for (int y = startY; y < endY; y++) {
-                    int color = img.getPixelArgb(x, y);
+                    int color = img.getColor(x, y);
                     rSum += (color & 0xFF);
                     gSum += ((color >> 8) & 0xFF);
                     bSum += ((color >> 16) & 0xFF);
@@ -126,7 +127,7 @@ public class OptimizationMod implements ModInitializer {
         }
     }
 
-    // 6. ТРИГГЕР КРИТА И БЕЗОПАСНАЯ ОЧИСТКА RAM (РАЗ В 60 СЕК) (ИСПРАВЛЕНО под логику падения игрока)
+    // 6. ТРИГГЕР КРИТА И БЕЗОПАСНАЯ ОЧИСТКА RAM (РАЗ В 60 СЕК)
     @Mixin(MinecraftClient.class)
     public static class MixinMinecraftClientTracker {
         private int ramTickCounter = 0;
@@ -141,7 +142,6 @@ public class OptimizationMod implements ModInitializer {
             }
             
             MinecraftClient client = (MinecraftClient)(Object)this;
-            // В 1.21.4 критический удар от первого лица рассчитывается через замах при падении без лестниц/воды
             if (client.player != null && client.player.handSwinging && client.player.getVelocity().y < 0 && !client.player.isOnGround() && !client.player.isClimbing()) {
                 OptimizationMod.isCritHandOffsetActive = true;
                 OptimizationMod.mathTicksLeft = 4;
@@ -176,20 +176,27 @@ public class OptimizationMod implements ModInitializer {
         }
     }
 
+    // ПОЛУЧЕНИЕ ДОСТУПА К СКРЫТОМУ ПОЛЮ ПРОЗРАЧНОСТИ ЧАСТИЦЫ ЧЕРЕЗ ACCESSOR
+    @Mixin(Particle.class)
+    public interface ParticleAlphaAccessor {
+        @Accessor("alpha")
+        void setParticleAlpha(float alpha);
+    }
+
     @Mixin(net.minecraft.client.particle.SpellParticle.class)
     public static class MixinSpellParticle {
         @Inject(method = "<init>", at = @At("RETURN"))
         private void onSpellParticleConstructor(CallbackInfo ci) {
-            net.minecraft.client.particle.Particle particle = (net.minecraft.client.particle.Particle)(Object)this;
-            particle.setAlpha(1.0f); // ИСПРАВЛЕНО НА setAlpha
+            Particle particle = (Particle)(Object)this;
+            ((ParticleAlphaAccessor) particle).setParticleAlpha(1.0f);
         }
     }
 
-    // 9. ПОЛНАЯ ЗАМОРОЗКА АНИМАЦИЙ ЖИДКОСТЕЙ И ТЕКСТУР БЛОКОВ (ИСПРАВЛЕНО НА метод tick)
+    // 9. ПОЛНАЯ ЗАМОРОЗКА АНИМАЦИЙ ЖИДКОСТЕЙ И ТЕКСТУР БЛОКОВ (ИСПРАВЛЕНО НА метод animate)
     @Mixin(SpriteContents.class)
     public static class MixinSpriteContents {
-        @Inject(method = "tick", at = @At("HEAD"), cancellable = true)
-        private void onTick(CallbackInfo ci) {
+        @Inject(method = "animate", at = @At("HEAD"), cancellable = true)
+        private void onAnimate(CallbackInfo ci) {
             ci.cancel();
         }
     }
