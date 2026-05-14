@@ -9,6 +9,7 @@ import net.minecraft.client.render.block.entity.BlockEntityRenderDispatcher;
 import net.minecraft.client.render.entity.EntityRenderDispatcher;
 import net.minecraft.client.render.item.HeldItemRenderer;
 import net.minecraft.client.texture.NativeImage;
+import net.minecraft.client.texture.TextureManager;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.client.world.ClientChunkManager;
 import net.minecraft.block.entity.BlockEntity;
@@ -79,7 +80,7 @@ public class OptimizationMod implements ModInitializer {
         }
     }
 
-    // 4. ТЕКСТУРЫ 2x2 (4 ПИКСЕЛЯ): ИСПРАВЛЕНО ПРИВЕДЕНИЕ ТИПОВ ЧЕРЕЗ (OBJECT)
+    // 4. ТЕКСТУРЫ 2x2 (4 ПИКСЕЛЯ): СЖАТИЕ ТЕКСТУР БЛОКОВ И МОБОВ
     @Mixin(NativeImage.class)
     public static class MixinNativeImage {
         @Inject(method = "upload", at = @At("HEAD"))
@@ -204,13 +205,13 @@ public class OptimizationMod implements ModInitializer {
         }
     }
 
-    // 9. БЕЗОПАСНАЯ ОТМЕНА АНИМАЦИИ НА СТАДИИ ЗАГРУЗКИ СПРАЙТОВ (МИНУЯ КОНФЛИКТНЫЙ МЕТОД TICK)
-    @Mixin(SpriteContents.class)
-    public static class MixinSpriteContents {
-        @Inject(method = "getAnimation", at = @At("HEAD"), cancellable = true)
-        private void onGetAnimation(CallbackInfoReturnable<Object> cir) {
-            // Возвращаем пустую анимацию, полностью замораживая текстуры воды/лавы без ошибок выполнения
-            cir.setReturnValue(null);
+    // 9. ОФИЦИАЛЬНАЯ ЗАМОРОЗКА АНИМАЦИЙ: ОТКЛЮЧЕНИЕ ТАКТОВ ТЕКСТУРНОГО МЕНЕДЖЕРА (SODIUM МЕТОД)
+    @Mixin(TextureManager.class)
+    public static class MixinTextureManager {
+        @Inject(method = "tick", at = @At("HEAD"), cancellable = true)
+        private void onTick(CallbackInfo ci) {
+            // Полностью запрещаем циклы анимаций воды, лавы и блоков во всем мире для буста FPS
+            ci.cancel();
         }
     }
 
