@@ -31,7 +31,7 @@ public class OptimizationMod implements ModInitializer {
 
     @Override
     public void onInitialize() {
-        System.out.println("[MaxOptimize] Мод экстремальной оптимизации успешно запущен!");
+        System.out.println("[MaxOptimize] Единый пак экстремальной оптимизации (v8) успешно запущен!");
     }
 
     // 1. АЛГОРИТМ SODIUM: КУЛЛИНГ СКРЫТОЙ ГЕОМЕТРИИ ЧАНКОВ
@@ -68,7 +68,7 @@ public class OptimizationMod implements ModInitializer {
         }
     }
 
-    // 4. ТЕКСТУРЫ 2x2 (4 ПИКСЕЛЯ): КРАСИВОЕ СЖАТИЕ БЕЗ КИСЛОТНОСТИ И СЛИВАНИЯ РУД
+    // 4. ТЕКСТУРЫ 2x2 (4 ПИКСЕЛЯ): СЖАТИЕ БЕЗ КИСЛОТНОСТИ И СЛИВАНИЯ РУД (ИСПРАВЛЕНО НА setPixelArgb)
     @Mixin(NativeImage.class)
     public static class MixinNativeImage {
         @Inject(method = "upload", at = @At("HEAD"))
@@ -87,13 +87,13 @@ public class OptimizationMod implements ModInitializer {
             for (int x = 0; x < width; x++) {
                 for (int y = 0; y < height; y++) {
                     if (x < midX && y < midY) {
-                        image.setColor(x, y, topLeftColor);
+                        image.setPixelArgb(x, y, topLeftColor);
                     } else if (x >= midX && y < midY) {
-                        image.setColor(x, y, topRightColor);
+                        image.setPixelArgb(x, y, topRightColor);
                     } else if (x < midX && y >= midY) {
-                        image.setColor(x, y, bottomLeftColor);
+                        image.setPixelArgb(x, y, bottomLeftColor);
                     } else {
-                        image.setColor(x, y, bottomRightColor);
+                        image.setPixelArgb(x, y, bottomRightColor);
                     }
                 }
             }
@@ -106,7 +106,7 @@ public class OptimizationMod implements ModInitializer {
 
             for (int x = startX; x < endX; x++) {
                 for (int y = startY; y < endY; y++) {
-                    int color = img.getColor(x, y);
+                    int color = img.getPixelArgb(x, y);
                     rSum += (color & 0xFF);
                     gSum += ((color >> 8) & 0xFF);
                     bSum += ((color >> 16) & 0xFF);
@@ -117,7 +117,7 @@ public class OptimizationMod implements ModInitializer {
         }
     }
 
-    // 5. ОПТИМИЗАЦИЯ ПОТОКА ПРОГРУЗКИ ЧАНКОВ (ИСПРАВЛЕНО: Безопасный инжект строки)
+    // 5. ОПТИМИЗАЦИЯ ПОТОКА ПРОГРУЗКИ ЧАНКОВ
     @Mixin(targets = "net.minecraft.client.world.ClientChunkManager$ClientChunkMap")
     public static class MixinClientChunkMap {
         @Inject(method = "set", at = @At("HEAD"))
@@ -126,7 +126,7 @@ public class OptimizationMod implements ModInitializer {
         }
     }
 
-    // 6. ТРИГГЕР КРИТА И БЕЗОПАСНАЯ ОЧИСТКА RAM (РАЗ В 60 СЕК)
+    // 6. ТРИГГЕР КРИТА И БЕЗОПАСНАЯ ОЧИСТКА RAM (РАЗ В 60 СЕК) (ИСПРАВЛЕНО под логику падения игрока)
     @Mixin(MinecraftClient.class)
     public static class MixinMinecraftClientTracker {
         private int ramTickCounter = 0;
@@ -141,7 +141,8 @@ public class OptimizationMod implements ModInitializer {
             }
             
             MinecraftClient client = (MinecraftClient)(Object)this;
-            if (client.player != null && client.player.isCrit() && client.player.handSwinging) {
+            // В 1.21.4 критический удар от первого лица рассчитывается через замах при падении без лестниц/воды
+            if (client.player != null && client.player.handSwinging && client.player.getVelocity().y < 0 && !client.player.isOnGround() && !client.player.isClimbing()) {
                 OptimizationMod.isCritHandOffsetActive = true;
                 OptimizationMod.mathTicksLeft = 4;
             }
@@ -180,15 +181,15 @@ public class OptimizationMod implements ModInitializer {
         @Inject(method = "<init>", at = @At("RETURN"))
         private void onSpellParticleConstructor(CallbackInfo ci) {
             net.minecraft.client.particle.Particle particle = (net.minecraft.client.particle.Particle)(Object)this;
-            particle.setColorAlpha(1.0f);
+            particle.setAlpha(1.0f); // ИСПРАВЛЕНО НА setAlpha
         }
     }
 
-    // 9. ПОЛНАЯ ЗАМОРОЗКА АНИМАЦИЙ ЖИДКОСТЕЙ И ТЕКСТУР БЛОКОВ (ИСПРАВЛЕНО под маппинги 1.21.4)
+    // 9. ПОЛНАЯ ЗАМОРОЗКА АНИМАЦИЙ ЖИДКОСТЕЙ И ТЕКСТУР БЛОКОВ (ИСПРАВЛЕНО НА метод tick)
     @Mixin(SpriteContents.class)
     public static class MixinSpriteContents {
-        @Inject(method = "tickAnimation", at = @At("HEAD"), cancellable = true)
-        private void onTickAnimation(CallbackInfo ci) {
+        @Inject(method = "tick", at = @At("HEAD"), cancellable = true)
+        private void onTick(CallbackInfo ci) {
             ci.cancel();
         }
     }
