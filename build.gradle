@@ -1,7 +1,23 @@
+buildscript {
+    repositories {
+        maven {
+            name = 'Fabric'
+            url = 'https://maven.fabricmc.net/'
+        }
+        mavenCentral()
+    }
+    dependencies {
+        // Подключаем Loom напрямую через classpath сборщика
+        classpath "net.fabricmc:fabric-loom:1.9-SNAPSHOT"
+    }
+}
+
 plugins {
-    id 'net.fabricmc.loom' version '1.9.2'
     id 'maven-publish'
 }
+
+// Принудительно применяем плагин к проекту
+apply plugin: 'net.fabricmc.fabric-loom'
 
 version = '1.0.0'
 group = 'com.example'
