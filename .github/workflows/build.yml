@@ -26,4 +26,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: MaxOptimize-1.21.4
-          path: build/libs/*-base.jar
+          path: build/libs/*.jar
