@@ -9,7 +9,6 @@ import net.minecraft.client.render.block.entity.BlockEntityRenderDispatcher;
 import net.minecraft.client.render.entity.EntityRenderDispatcher;
 import net.minecraft.client.render.item.HeldItemRenderer;
 import net.minecraft.client.texture.NativeImage;
-import net.minecraft.client.texture.SpriteContents;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.client.world.ClientChunkManager;
 import net.minecraft.block.entity.BlockEntity;
@@ -21,6 +20,7 @@ import net.minecraft.particle.EntityEffectParticleEffect;
 import net.minecraft.util.Hand;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.gen.Accessor;
+import org.spongepowered.asm.mixin.gen.Invoker;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
@@ -33,6 +33,16 @@ public class OptimizationMod implements ModInitializer {
     @Override
     public void onInitialize() {
         System.out.println("[MaxOptimize] Единый пак экстремальной оптимизации (v8) успешно запущен!");
+    }
+
+    // ИНТЕРФЕЙС-УЗЕЛ ДЛЯ ОБХОДА ПРИВАТНОГО ДОСТУПА NATIVEIMAGE
+    @Mixin(NativeImage.class)
+    public interface NativeImageAccessor {
+        @Invoker("setColor")
+        void invokeSetColor(int x, int y, int color);
+
+        @Invoker("getColor")
+        int invokeGetColor(int x, int y);
     }
 
     // 1. АЛГОРИТМ SODIUM: КУЛЛИНГ СКРЫТОЙ ГЕОМЕТРИИ ЧАНКОВ
@@ -69,7 +79,7 @@ public class OptimizationMod implements ModInitializer {
         }
     }
 
-    // 4. ТЕКСТУРЫ 2x2 (4 ПИКСЕЛЯ): СЖАТИЕ С ПРАВИЛЬНЫМИ ТИПАМИ ИНТЕРФЕЙСА NATIVEIMAGE
+    // 4. ТЕКСТУРЫ 2x2 (4 ПИКСЕЛЯ): СЖАТИЕ С ИСПОЛЬЗОВАНИЕМ ПОДКЛЮЧЕННОГО INVOKER ACCESSOR
     @Mixin(NativeImage.class)
     public static class MixinNativeImage {
         @Inject(method = "upload", at = @At("HEAD"))
@@ -85,16 +95,17 @@ public class OptimizationMod implements ModInitializer {
             int bottomLeftColor = getAverageColorOfSector(image, 0, midX, midY, height);
             int bottomRightColor = getAverageColorOfSector(image, midX, width, midY, height);
 
+            NativeImageAccessor accessor = (NativeImageAccessor) image;
             for (int x = 0; x < width; x++) {
                 for (int y = 0; y < height; y++) {
                     if (x < midX && y < midY) {
-                        image.setColor(x, y, topLeftColor);
+                        accessor.invokeSetColor(x, y, topLeftColor);
                     } else if (x >= midX && y < midY) {
-                        image.setColor(x, y, topRightColor);
+                        accessor.invokeSetColor(x, y, topRightColor);
                     } else if (x < midX && y >= midY) {
-                        image.setColor(x, y, bottomLeftColor);
+                        accessor.invokeSetColor(x, y, bottomLeftColor);
                     } else {
-                        image.setColor(x, y, bottomRightColor);
+                        accessor.invokeSetColor(x, y, bottomRightColor);
                     }
                 }
             }
@@ -105,9 +116,10 @@ public class OptimizationMod implements ModInitializer {
             int count = (endX - startX) * (endY - startY);
             if (count <= 0) return 0;
 
+            NativeImageAccessor accessor = (NativeImageAccessor) img;
             for (int x = startX; x < endX; x++) {
                 for (int y = startY; y < endY; y++) {
-                    int color = img.getColor(x, y);
+                    int color = accessor.invokeGetColor(x, y);
                     rSum += (color & 0xFF);
                     gSum += ((color >> 8) & 0xFF);
                     bSum += ((color >> 16) & 0xFF);
@@ -176,7 +188,6 @@ public class OptimizationMod implements ModInitializer {
         }
     }
 
-    // ПОЛУЧЕНИЕ ДОСТУПА К СКРЫТОМУ ПОЛЮ ПРОЗРАЧНОСТИ ЧАСТИЦЫ ЧЕРЕЗ ACCESSOR
     @Mixin(Particle.class)
     public interface ParticleAlphaAccessor {
         @Accessor("alpha")
@@ -192,11 +203,11 @@ public class OptimizationMod implements ModInitializer {
         }
     }
 
-    // 9. ПОЛНАЯ ЗАМОРОЗКА АНИМАЦИЙ ЖИДКОСТЕЙ И ТЕКСТУР БЛОКОВ (ИСПРАВЛЕНО НА метод animate)
-    @Mixin(SpriteContents.class)
-    public static class MixinSpriteContents {
-        @Inject(method = "animate", at = @At("HEAD"), cancellable = true)
-        private void onAnimate(CallbackInfo ci) {
+    // 9. ПОЛНАЯ ЗАМОРОЗКА АНИМАЦИЙ СТРУКТУРЫ АНИМАЦИИ СПРАЙТОВ
+    @Mixin(targets = "net.minecraft.client.texture.SpriteContents$Animation")
+    public static class MixinSpriteAnimation {
+        @Inject(method = "tick", at = @At("HEAD"), cancellable = true)
+        private void onTickAnimation(CallbackInfo ci) {
             ci.cancel();
         }
     }
