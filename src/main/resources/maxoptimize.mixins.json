@@ -1,0 +1,23 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "com.example.optimization",
+  "compatibilityLevel": "JAVA_21",
+  "client": [
+    "OptimizationMod$MixinSodiumChunkCulling",
+    "OptimizationMod$MixinLithiumAI",
+    "OptimizationMod$MixinFerriteCoreRamCompression",
+    "OptimizationMod$MixinNativeImage",
+    "OptimizationMod$MixinClientChunkMap",
+    "OptimizationMod$MixinMinecraftClientTracker",
+    "OptimizationMod$MixinHeldItemRenderer",
+    "OptimizationMod$MixinParticleManager",
+    "OptimizationMod$MixinSpellParticle",
+    "OptimizationMod$MixinSpriteContents",
+    "OptimizationMod$MixinWorldRenderer",
+    "OptimizationMod$MixinClientChunkManager",
+    "OptimizationMod$MixinBlockEntityRenderer",
+    "OptimizationMod$MixinEntityRenderDispatcher"
+  ],
+  "injectors": { "defaultRequire": 1 }
+}
