@@ -4,6 +4,7 @@
   "package": "com.example.optimization",
   "compatibilityLevel": "JAVA_21",
   "client": [
+    "OptimizationMod$NativeImageAccessor",
     "OptimizationMod$MixinSodiumChunkCulling",
     "OptimizationMod$MixinLithiumAI",
     "OptimizationMod$MixinFerriteCoreRamCompression",
@@ -12,12 +13,15 @@
     "OptimizationMod$MixinMinecraftClientTracker",
     "OptimizationMod$MixinHeldItemRenderer",
     "OptimizationMod$MixinParticleManager",
+    "OptimizationMod$ParticleAlphaAccessor",
     "OptimizationMod$MixinSpellParticle",
-    "OptimizationMod$MixinSpriteContents",
+    "OptimizationMod$MixinTextureManager",
     "OptimizationMod$MixinWorldRenderer",
     "OptimizationMod$MixinClientChunkManager",
     "OptimizationMod$MixinBlockEntityRenderer",
     "OptimizationMod$MixinEntityRenderDispatcher"
   ],
-  "injectors": { "defaultRequire": 1 }
+  "injectors": {
+    "defaultRequire": 1
+  }
 }
